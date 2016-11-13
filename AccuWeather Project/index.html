@@ -1,0 +1,245 @@
+<!DOCTYPE HTML>
+<html>
+
+<!--
+    This page shows how to search for a location (by free text) and 
+    retrieve the current conditions for the location.
+    For more information visit: http://api.accuweather.com/developers/
+    ** Remember that you need to obtain your own API key by contacting AccuWeather. **
+    -->
+
+<head>
+    <title>Style Cast</title>
+
+    <!-- Custom styles -->
+    <link href="assets/css/main.css" rel="stylesheet">
+    
+    <link href='http://fonts.googleapis.com/css?family=Lato:300,400,700,300italic,400italic' rel='stylesheet' type='text/css'>
+    <link href='http://fonts.googleapis.com/css?family=Raleway:400,300,700' rel='stylesheet' type='text/css'>
+    
+    <script src="http://code.jquery.com/jquery-1.9.1.js"></script>
+
+    <script type="text/javascript">
+        // Configure our weather widget during jQuery.OnReady
+        $(function () {
+            
+            var locationUrl = "";
+            var currentConditionsUrl = "";
+            // Visit http://apidev.accuweather.com/developers/languages for a list of supported languages
+            var language = "en";
+            // Contact AccuWeather to get an official key. They key in this
+            // example is temporary and should NOT be used it in production.
+            var apiKey = "PSUHackathon112016";   
+            var awxClearMessages = function() {
+                $("#awxLocationInfo").html("...");
+                $("#awxLocationUrl").html("...");
+                $("#awxWeatherInfo").html("...");
+                $("#awxWeatherUrl").html("...");
+                $("#awxWeatherMax").html("...");
+                $("#awxWeatherMin").html("...");
+                $("#awxforecastConditionUrl").html("...");
+            }
+            // Searches for a city with the name specified in freeText.
+            // freeText can be something like:
+            //          new york
+            //          new york, ny
+            //          paris
+            //          paris, france
+            // For more info about location API go to http://apidev.accuweather.com/developers/locations
+            var awxCityLookUp = function (freeText) {
+                awxClearMessages();
+                locationUrl = "http://apidev.accuweather.com/locations/v1/search?q=" + freeText + "&apikey=" + apiKey + "&details=true";
+                $.ajax({
+                    type: "GET",
+                    url: locationUrl,
+                    dataType: "jsonp",
+                    cache: true,                    // Use cache for better reponse times
+                    jsonpCallback: "awxCallback",   // Prevent unique callback name for better reponse times
+                    success: function (data) { awxCityLookUpFound(data); }
+                });
+            };
+            // Displays what location(s) were found.
+            var awxCityLookUpFound = function (data) {
+                var msg, locationKey = null;
+                $("#awxLocationUrl").html("<a href=" + encodeURI(locationUrl) + ">" + locationUrl + "</a>");
+                if (data.length == 1) {
+                    locationKey = data[0].Key;
+                }
+                else if(data.length == 0) {
+                    msg = "No locations found."
+                }
+                else {
+                    locationKey = data[0].Key;
+                }
+                $("#awxLocationInfo").html(msg);
+                if(locationKey != null) {
+                    awxGetCurrentConditions(locationKey);
+                    awxGetForecast(locationKey);
+                }
+                    
+            };
+            
+            var temp;
+            // Gets current conditions for the location.
+            // For more info about Current Conditions API go to http://apidev.accuweather.com/developers/locations
+            var awxGetCurrentConditions = function (locationKey) 
+            {
+                currentConditionsUrl = "http://apidev.accuweather.com/currentconditions/v1/" + 
+                    locationKey + ".json?language=" + language + "&apikey=" + apiKey + "&details=true";
+                $.ajax({
+                    type: "GET",
+                    url: currentConditionsUrl,
+                    dataType: "jsonp",
+                    cache: true,                    // Use cache for better reponse times
+                    jsonpCallback: "awxCallback",   // Prevent unique callback name for better reponse times
+                    success: function (data) {
+                            var html;
+                            if(data && data.length > 0) {
+                                var conditions = data[0];
+                                temp = conditions.RealFeelTemperature.Imperial;
+                                html = conditions.WeatherText + ", " + temp.Value + " " + temp.Unit;
+                            }
+                            else {
+                                html = "N/A";
+                            }
+                        $("#awxWeatherInfo").html(html);
+                        $("#awxWeatherUrl").html("<a href=" + currentConditionsUrl + ">" + currentConditionsUrl + "</a>");
+                        console.log(data);
+                        
+                        var UB,LB,S,AS;
+                        console.log(temp.Value);
+                if(temp.Value >75)
+                    {
+                        UB = "T-shirts";
+                        LB = "Shorts";
+                        S = "Sandals";
+                        AS = "Sunglasses/Hat"
+                    } else if(temp.Value>60)
+                    {
+                        UB = "Long Sleeved Shirts";
+                        LB = "Sweatpants / Jeans";
+                        S = "Sneakers";
+                        AS = "Beanie";
+                    } else if(temp.Value>45)
+                    {
+                        UB = "Long Sleeved Shirts / Hoodies";
+                        LB = "Sweatpants / Jeans";
+                        S = "Sneakers / Boots";
+                        AS = "Scarf";
+                    } else
+                    {
+                        UB = "Coat & Layers";
+                        LB = "Jeans";
+                        S = "Boots";
+                        AS = "Gloves & a Scarf";
+                    }
+                $("#UB").html(UB);
+                $("#LB").html(LB);
+                $("#S").html(S);
+                $("#AS").html(AS);
+                        
+                }
+                });
+            };
+            
+            var awxGetForecast = function (locationKey) {
+                forecastConditionUrl = "http://apidev.accuweather.com/forecasts/v1/daily/1day/" +
+                    locationKey  + ".json?apikey=" + apiKey + "&details=true&language=" + language;
+                $.ajax({
+                    type: "GET",
+                    url: forecastConditionUrl,
+                    dataType: "jsonp",
+                    cache: true,                    // Use cache for better reponse times
+                    jsonpCallback: "awxCallback2",   // Prevent unique callback name for better reponse times
+                    success: function (data) {
+                            var max,min;
+                            console.log(data);
+                            if(data) {
+                                var temp2 = data.DailyForecasts[0].RealFeelTemperature;
+                                console.log(temp2);
+                                min = "Minimum Temperature: "+temp2.Minimum.Value + " " + temp2.Minimum.Unit;  
+                                max = "Maximum Temperature: "+temp2.Maximum.Value + " " + temp2.Maximum.Unit;
+                            }
+                            else {
+                                 hoho = "N/A";
+                            }
+                        $("#awxWeatherMax").html(max);
+                        $("#awxWeatherMin").html(min);
+                        $("#awxforecastConditionUrl").html("<a href=" + forecastConditionUrl + ">" + forecastConditionUrl + "</a>");
+                    }
+                });                   
+            };
+
+            $("#awxSearchTextBox").keypress(function (e) {
+                if ((e.which && e.which == 13) || (e.keyCode && e.keyCode == 13)) {
+                    var text = $("#awxSearchTextBox").val();
+                    awxCityLookUp(text);
+                    return false;
+                } else {
+                    return true;
+                }
+            });
+            $("#awxSearchButton").click(function () {
+                var text = $("#awxSearchTextBox").val();
+                awxCityLookUp(text);
+                
+                
+                
+            });
+            
+            
+        });  
+        
+        
+        
+        
+    </script>
+</head>
+
+<body>
+    <section id="header">
+        <div class="container">
+            <header>
+                <!-- HEADLINE -->
+                <h1>WELCOME TO STYLECAST</h1>
+            </header>
+            
+            <div class="col-lg-4 col-lg-offset-4 mt centered">
+            	<h4>Stylecast is a Web App that recommends you what to wear based on the forecast of the day. Just enter your area zip code to get started: </h4>
+				
+                <div>Enter area zip code: 
+                <input id="awxSearchTextBox" rel="font" /> 
+                <input id="awxSearchButton" type="submit" value="Search" /> 
+                </div>
+                
+                <div id="awxWeatherInfo"></div>
+        
+                <div id="awxWeatherMax"></div>
+                <div id="awxWeatherMin"></div>
+                
+			</div>
+            <!-- START BOXES -->
+            
+             
+             <div id="boxes">
+                 
+                <p class="Message">HERE ARE YOUR RECOMENDATIONS ON WHAT TO WEAR TODAY: </p>
+                <div id="UpperBody" class="output_box"><p id="UB"></p></div>
+                <div id="LowerBody" class="output_box"><p id="LB"></p></div>
+                <div id="Shoes" class="output_box"><p id="S"></p></div>
+                <div id="Accessories" class="output_box"><p id="AS"></p></div>
+            
+            </div>
+            <!-- END BOXES -->
+            
+        </div>
+    </section>
+      
+    <section>
+      <p class="powered">Powered by: </p><center><img src="assets/img/AccuWeather_Logo.svg.png" hight="300" width="300"></center>
+    </section>
+
+    
+</body>
+
+</html>
